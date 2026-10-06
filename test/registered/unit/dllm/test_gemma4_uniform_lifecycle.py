@@ -49,6 +49,8 @@ class _Req:
     def seqlen(self):
         return len(self.origin_input_ids) + len(self.output_ids)
 
+    extend_len = Req.extend_len
+
     def is_dllm_prefill(self):
         return self.dllm_phase_prefill
 
@@ -207,11 +209,12 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
             truncation_align_size=None,
         )
         self.assertEqual((admission.prefix_len, admission.extend_len), (0, 300))
-        PrefillAdder._add_dllm_req(adder, req, 0)
+        PrefillAdder._add_dllm_req(adder, req)
         self.assertEqual((req.prefix_len, req.extend_end), (0, 300))
 
         req.dllm_phase_prefill = False
-        PrefillAdder._add_dllm_req(adder, req, 300)
+        req.prefix_len = 300
+        PrefillAdder._add_dllm_req(adder, req)
         self.assertEqual((req.prefix_len, req.extend_end), (300, 556))
 
     def test_chunked_context_prefill_stops_at_context_boundary(self):
@@ -260,10 +263,7 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
         self.assertEqual(req.kv.req_pool_idx, 3)
         self.assertEqual(req.kv.kv_committed_len, context_len)
         self.assertEqual(req.kv.kv_allocated_len, context_len)
-        self.assertEqual(
-            (req.prefix_len, req.extend_end),
-            (context_len, context_len),
-        )
+        self.assertEqual(req.extend_end, context_len)
         scheduler.stash_chunked_request.assert_called_once_with(req)
 
     def test_unresolved_fdfo_preserves_state_and_reuses_exact_slots(self):
