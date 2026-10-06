@@ -175,18 +175,10 @@ def checkpoint_kv_cache(req: Req, tree_cache: BasePrefixCache) -> None:
     # The tree reads req.finished() to tell a checkpoint from the final
     # insert; a finished request belongs in release_kv_cache.
     assert not req.finished(), f"checkpointing finished request {req.rid}"
-    up_to = req.extend_range.end
     if not req.skip_radix_cache_insert:
-        tree_cache.checkpoint(req, up_to=up_to)
-    advance_prefix_to_row(req, tree_cache.req_to_token_pool, up_to)
-
-
-def advance_prefix_to_row(req: Req, req_to_token_pool: ReqToTokenPool, up_to: int):
-    """The next extend resumes after the row's first ``up_to`` slots, published
-    or not; read after any checkpoint, which may rebind them to the tree's."""
-    req.prefix_indices = req_to_token_pool.req_to_token[req.kv.req_pool_idx, :up_to].to(
-        dtype=torch.int64, copy=True
-    )
+        tree_cache.checkpoint(req, up_to=req.extend_range.end)
+    # The next extend resumes after this one, published or not.
+    req.prefix_len = req.extend_range.end
 
 
 def evict_from_tree_cache(

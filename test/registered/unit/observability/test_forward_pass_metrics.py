@@ -34,6 +34,7 @@ class _FakeReq:
         self.origin_input_ids = list(range(prompt_len))
         self.output_ids = list(range(output_len))
         self.prefix_indices = list(range(prefix_len))
+        self.prefix_len = len(self.prefix_indices)
         self.seqlen = prompt_len + output_len
 
 

@@ -209,6 +209,7 @@ class TestOptimisticPrefillCacheOwnership(unittest.TestCase):
                 cache_protected_len=2,
             ),
             prefix_indices=torch.tensor([8, 9], dtype=torch.int64),
+            prefix_len=2,
             priority=3,
             extra_key=None,
             cache_salt=None,
@@ -357,7 +358,7 @@ class TestOptimisticPrefillCacheOwnership(unittest.TestCase):
 
         cache.advance_unpublished_req.assert_called_once_with(req)
         # The next chunk still resumes after this one.
-        self.assertEqual(req.prefix_indices.tolist(), [0, 1, 2, 3, 4])
+        self.assertEqual(req.prefix_len, 5)
 
     def test_bootstrap_success_publishes_once(self):
         scheduler = SimpleNamespace(
