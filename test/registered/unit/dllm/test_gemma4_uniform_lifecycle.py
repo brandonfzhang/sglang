@@ -33,9 +33,7 @@ class _Req:
         self.dllm_incomplete_ids = array("q")
         self.dllm_algo_state = None
         self.dllm_phase_prefill = prefill
-        self.extend_range = SimpleNamespace(
-            start=context_len, end=context_len + block_size, length=block_size
-        )
+        self.extend_end = context_len + block_size
         self.kv = ReqKvInfo(
             req_pool_idx=1,
             kv_allocated_len=context_len + block_size,
@@ -53,9 +51,6 @@ class _Req:
 
     def is_dllm_prefill(self):
         return self.dllm_phase_prefill
-
-    def set_extend_range(self, start, end):
-        self.extend_range = SimpleNamespace(start=start, end=end, length=end - start)
 
     def update_finish_state(self, new_accepted_len=1):
         if self.finish_on_update:
@@ -213,11 +208,11 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
         )
         self.assertEqual((admission.prefix_len, admission.extend_len), (0, 300))
         PrefillAdder._add_dllm_req(adder, req, 0)
-        self.assertEqual((req.extend_range.start, req.extend_range.end), (0, 300))
+        self.assertEqual((req.prefix_len, req.extend_end), (0, 300))
 
         req.dllm_phase_prefill = False
         PrefillAdder._add_dllm_req(adder, req, 300)
-        self.assertEqual((req.extend_range.start, req.extend_range.end), (300, 556))
+        self.assertEqual((req.prefix_len, req.extend_end), (300, 556))
 
     def test_chunked_context_prefill_stops_at_context_boundary(self):
         adder = object.__new__(PrefillAdder)
@@ -234,7 +229,7 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
         result = PrefillAdder.add_dllm_staging_req(adder, req)
 
         self.assertEqual(result, AddReqResult.CONTINUE)
-        self.assertEqual((req.extend_range.start, req.extend_range.end), (7, 10))
+        self.assertEqual((req.prefix_len, req.extend_end), (7, 10))
         self.assertEqual(adder.can_run_list, [req])
 
     def test_completed_canvas_frees_only_decoder_pages_and_keeps_slot(self):
@@ -244,7 +239,7 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
         )
         req.full_untruncated_fill_ids.extend([0] * block_size)
         req.dllm_block_offset = context_len
-        req.set_extend_range(context_len, context_len + block_size)
+        req.extend_end = context_len + block_size
         req.kv.req_pool_idx = 3
         req.kv.kv_allocated_len = context_len + block_size
         req.kv.kv_committed_len = context_len + block_size
@@ -266,7 +261,7 @@ class TestGemma4ContextLifecycle(unittest.TestCase):
         self.assertEqual(req.kv.kv_committed_len, context_len)
         self.assertEqual(req.kv.kv_allocated_len, context_len)
         self.assertEqual(
-            (req.extend_range.start, req.extend_range.end),
+            (req.prefix_len, req.extend_end),
             (context_len, context_len),
         )
         scheduler.stash_chunked_request.assert_called_once_with(req)
