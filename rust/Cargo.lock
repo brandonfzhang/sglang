@@ -3796,6 +3796,7 @@ dependencies = [
  "rustix",
  "serde",
  "serde_json",
+ "sglang-api-types",
  "sglang-mm",
  "socket2",
  "thiserror",
