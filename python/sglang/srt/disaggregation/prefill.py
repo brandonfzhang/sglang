@@ -74,6 +74,7 @@ from sglang.srt.managers.schedule_batch import (
 )
 from sglang.srt.mem_cache.base_prefix_cache import CacheRequestOutcome
 from sglang.srt.mem_cache.common import (
+    advance_prefix_to_row,
     checkpoint_kv_cache,
     kv_to_page_indices,
     kv_to_page_num,
@@ -593,6 +594,7 @@ class SchedulerDisaggregationPrefillMixin:
         cache = self.tree_cache
         if req.pending_bootstrap and _uses_write_through_cache(cache):
             cache.advance_unpublished_req(req)
+            advance_prefix_to_row(req, cache.req_to_token_pool, req.extend_range.end)
             return
 
         checkpoint_kv_cache(req, cache)

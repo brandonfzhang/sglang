@@ -1960,8 +1960,7 @@ class UnifiedRadixCacheSuite:
 
         cache.checkpoint(req, up_to=req.extend_range.end)
 
-        self.assertGreater(len(req.prefix_indices), 0)
-        self.assertEqual(req.kv.cache_protected_len, len(req.prefix_indices))
+        self.assertGreater(req.kv.cache_protected_len, 0)
         self.assertIsNotNone(req.last_node)
         self.assertFalse(req.lock.swa_released)
 

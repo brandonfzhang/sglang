@@ -918,7 +918,8 @@ class TestRotationGraftDecline(_TreeCoreBackendCase):
         tree.checkpoint(req, up_to=len(req.fill_ids))
         # No dedup free, no rebind: the request keeps its own locs whole.
         self.assertEqual([t.tolist() for t in freed], [])
-        self.assertTrue(torch.equal(req.prefix_indices, own_locs))
+        row = tree.req_to_token_pool.req_to_token[req.kv.req_pool_idx, :12]
+        self.assertTrue(torch.equal(row.to(dtype=torch.int64), own_locs))
         self.assertEqual(req.kv.cache_protected_len, 0)
         self.assertTrue(
             torch.equal(tree.req_to_token_pool.req_to_token[0, :12], own_locs)

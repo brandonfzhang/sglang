@@ -503,7 +503,7 @@ class RadixCache(BasePrefixCache):
         key_limit = (
             ceil_align(swa_evict_floor, self.page_size) if swa_evict_floor > 0 else None
         )
-        radix_key, kv_indices, _ = self._insert_cache(
+        radix_key, _, _ = self._insert_cache(
             req, token_ids, key_limit=key_limit, split_prompt=True
         )
 
@@ -529,16 +529,6 @@ class RadixCache(BasePrefixCache):
 
         self.unlock(req.lock)
         req.lock = self.lock(new_last_node)
-
-        # `req.prefix_indices` will be used in `PrefillAdder::add_chunked_req` later
-        # - page_size != 1: there is a partial page at the end, keep the full kv_indices
-        # - eagle case: bigram keys will only cache len - 1 kv indices
-        if len(new_indices) < len(kv_indices):
-            req.prefix_indices = torch.cat(
-                [new_indices, kv_indices[len(new_indices) :]]
-            )
-        else:
-            req.prefix_indices = new_indices
         req.last_node = new_last_node
 
     def pretty_print(self):
